@@ -55,6 +55,10 @@ You need JDK 17 or newer. No Gradle and no downloads are required.
 
 Minecraft 26.x ships unobfuscated, and Fabric runs it under Mojang's own names. The mixins therefore target names directly, with `remap = false` and no refmap. The stubs only have to match the real signatures: the same class names, method names, and descriptors, plus the real retention for each Mixin annotation. They were checked against the decompiled 26.1, 26.2 and 26.3 client source.
 
+## Releases
+
+Downloads are on the [Releases page](https://github.com/luke-ruter/pane-seam-fix/releases). Every push to `main` builds the jar and checks the version in `build.sh`. If that version has no release yet, the workflow creates tag `v<version>` and publishes `dist/pane-seam-fix-<version>.jar`. To release a change, bump `VERSION` in `build.sh` and `version` in `fabric.mod.json` in the same commit. Otherwise nothing is published.
+
 ## Porting to a newer Minecraft version
 
 1. Check that `IronBarsBlock.skipRendering(BlockState, BlockState, Direction)` and `HalfTransparentBlock.skipRendering(BlockState, BlockState, Direction)` still exist and still use the same-block logic.

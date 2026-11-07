@@ -1,44 +1,66 @@
 name: Release
 
-# Push a tag such as v1.1.0 to build the jar and publish it as a GitHub release.
+# Every push to main (including merged pull requests) builds the jar. If the version in
+# build.sh has no GitHub release yet, it creates tag v<version> at that commit and publishes
+# the jar. Bump the version before merging to get a new release; otherwise nothing is published.
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Check tag matches mod version
+      - name: Read and check versions
+        id: version
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          MOD_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' src/main/resources/fabric.mod.json | head -1)
           SCRIPT_VERSION=$(sed -n 's/^VERSION="\([^"]*\)".*/\1/p' build.sh | head -1)
-          echo "tag=$TAG fabric.mod.json=$MOD_VERSION build.sh=$SCRIPT_VERSION"
-          if [ "$TAG" != "$MOD_VERSION" ] || [ "$TAG" != "$SCRIPT_VERSION" ]; then
-            echo "::error::Tag v$TAG must match the version in fabric.mod.json ($MOD_VERSION) and build.sh ($SCRIPT_VERSION)"
+          MOD_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' src/main/resources/fabric.mod.json | head -1)
+          echo "build.sh=$SCRIPT_VERSION fabric.mod.json=$MOD_VERSION"
+          if [ "$SCRIPT_VERSION" != "$MOD_VERSION" ]; then
+            echo "::error::Version mismatch: build.sh has $SCRIPT_VERSION but fabric.mod.json has $MOD_VERSION"
             exit 1
           fi
+          echo "version=$SCRIPT_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Build and test
-        run: bash build.sh
-
-      - name: Create GitHub release
+      - name: Check whether this version is already released
+        id: existing
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.jar \
-            --title "Pane Seam Fix $GITHUB_REF_NAME" \
-            --generate-notes \
-            --verify-tag
+          if gh release view "v${{ steps.version.outputs.version }}" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "v${{ steps.version.outputs.version }} is already released; skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and test
+        if: steps.existing.outputs.exists == 'false'
+        run: bash build.sh
+
+      - name: Create GitHub release
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          gh release create "$TAG" dist/*.jar \
+            --target "$GITHUB_SHA" \
+            --title "Pane Seam Fix $TAG" \
+            --generate-notes
