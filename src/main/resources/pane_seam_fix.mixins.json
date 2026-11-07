@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "paneseamfix.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "HalfTransparentBlockMixin",
+    "IronBarsBlockMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

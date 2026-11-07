@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "pane_seam_fix",
+  "version": "1.1.0",
+  "name": "Pane Seam Fix",
+  "description": "Hides the doubled faces where glass panes or full glass blocks of different colors meet, so mixed stained-glass builds render cleanly with shaders. Client-side only.",
+  "license": "MIT",
+  "environment": "client",
+  "mixins": [
+    "pane_seam_fix.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": ["26.1.x", "26.2.x", "26.3.x"],
+    "java": ">=17"
+  }
+}
